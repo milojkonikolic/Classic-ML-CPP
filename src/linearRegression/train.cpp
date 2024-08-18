@@ -130,7 +130,7 @@ int main() {
     }
 
     cout << endl << "Validation error - RMSE with the final model: " << valError << endl;
-    string outFile = "regressorResults.txt";
+    string outFile = "linearRegression/regressorResults.txt";
     cout << "Saving val targets and predictions to " << outFile << 
             " in the format 'target[i] predictions[i]' row by row" << endl;
     saveData(valTarget, valPredictions, outFile);
