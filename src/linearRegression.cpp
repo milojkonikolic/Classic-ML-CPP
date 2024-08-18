@@ -13,8 +13,9 @@ LinearRegression::LinearRegression(int samples, int features)
 LinearRegression::LinearRegression(): LinearRegression(0, 0) {}
 
 vector<double> LinearRegression::getPredictions(vector<vector<double>> trainFeatures) {
-    vector<double> predictions(numSamples, 0.0);
-    for (int i = 0; i < numSamples; i++) {
+    int batchSamples = trainFeatures.size();
+    vector<double> predictions(batchSamples, 0.0);
+    for (int i = 0; i < batchSamples; i++) {
         for (int j = 0; j < numFeatures; j++) {
             predictions[i] += trainFeatures[i][j] * theta[j];
         }
@@ -24,11 +25,11 @@ vector<double> LinearRegression::getPredictions(vector<vector<double>> trainFeat
 
 double LinearRegression::meanSquaredError(vector<double> predictions, vector<double> target) {
     double lossValue = 0;
-
-    for (int i = 0; i < numSamples; i++)
+    int batchSamples = predictions.size();
+    for (int i = 0; i < batchSamples; i++)
         lossValue += pow(predictions[i] - target[i], 2);
     
-    lossValue = lossValue / (2 * numSamples);
+    lossValue = lossValue / (2 * batchSamples);
     return lossValue;
 }
 
@@ -91,10 +92,12 @@ void LinearRegression::fit(vector<vector<double>> trainFeatures, vector<vector<d
 
     if (batchSize != 0) {
         createMiniBatches(miniBatches, targetBatches, trainFeatures, trainTarget, batchSize);
-        cout << "Mini batch size" << miniBatches.size();
+        cout << "Created " << miniBatches.size() << " batches with sizes: ( ";
+        for (vector<double> t : targetBatches)
+            cout << t.size() << " ";
+        cout << " )" << endl;
         trainFeatures.clear();
     }
-
     for (int epoch = 0; epoch < epochs; epoch++) {
         if (batchSize == 0) {
             gradientDescent(trainFeatures, trainTarget, learningRate);
@@ -105,10 +108,11 @@ void LinearRegression::fit(vector<vector<double>> trainFeatures, vector<vector<d
                 gradientDescent(miniBatches[b], targetBatches[b], learningRate);
             }
         }
+
         vector<double> trainPredictions = getPredictions(trainFeatures);
         trainLoss[epoch] = cost(trainPredictions, trainTarget);
         vector<double> valPredictions = getPredictions(valFeatures);
-        trainLoss[epoch] = cost(valPredictions, valTarget);
+        valLoss[epoch] = cost(valPredictions, valTarget);
         cout << "Epoch: " << epoch << " | Train Loss: " << trainLoss[epoch] << ", Val Loss: " << valLoss[epoch] << endl;
     }
 }

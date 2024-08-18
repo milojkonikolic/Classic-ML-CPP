@@ -7,6 +7,7 @@
 #include "linearRegression.h"
 #include "lassoRegression.h"
 #include "ridgeRegression.h"
+#include "crossValidation.cpp"
 
 using namespace std;
 
@@ -39,30 +40,46 @@ void readCSV(string filename, vector<vector<double>> &features, vector<double> &
 int main() {
 
     string filename = "data.csv";
-    vector<vector<double>> features;
-    vector<double> target;
+    string regressionType = "ridge";
+    double valSize = 0.2;
+    vector<vector<double>> features, trainFeatures, valFeatures;
+    vector<double> target, trainTarget, valTarget;
+    vector<double> valPredictions;
+    double valError = 0.;
     readCSV(filename, features, target);
 
-    string regressionType = "ridge";
-        
+    // Split data to train and val
+    train_val_split(features, target, trainFeatures, trainTarget, valFeatures, valTarget, valSize);
+
+    cout << "Train size: " << trainFeatures.size() << " " << trainTarget.size() << endl;
+    cout << "Val size: " << valFeatures.size() << " " << valTarget.size() << endl;
+
     if (regressionType == "ridge") {
         std::cout << "Using ridge regression" << endl;
-        RidgeRegression model(features.size(), features[0].size(), 0.1);
-        model.fit(features, features, target, target, 0.5, 5, 0);
+        RidgeRegression model(trainFeatures.size(), trainFeatures[0].size(), 0.1);
+        model.fit(trainFeatures, valFeatures, trainTarget, valTarget, 0.5, 5, 0);
+        valPredictions = model.predict(valFeatures);
+        valError = model.meanSquaredError(valPredictions, valTarget);
     }
     else if (regressionType == "lasso") {
         std::cout << "Using lasso regression" << endl;
-        LassoRegression model(features.size(), features[0].size(), 0.1);
-        model.fit(features, features, target, target, 0.5, 5, 0);
+        LassoRegression model(trainFeatures.size(), trainFeatures[0].size(), 0.1);
+        model.fit(trainFeatures, valFeatures, trainTarget, valTarget, 0.5, 5, 0);
+        valPredictions = model.predict(valFeatures);
+        valError = model.meanSquaredError(valPredictions, valTarget);
     }
     else if (regressionType == "linear") {
         std::cout << "Using linear regression" << endl;
-        LinearRegression model(features.size(), features[0].size());
-        model.fit(features, features, target, target, 0.5, 5, 0);
+        LinearRegression model(trainFeatures.size(), trainFeatures[0].size());
+        model.fit(trainFeatures, valFeatures, trainTarget, valTarget, 0.5, 5, 0);
+        valPredictions = model.predict(valFeatures);
+        valError = model.meanSquaredError(valPredictions, valTarget);
     }
     else {
         cerr << "Invalid regression type. Choose one of the following: linear, lasso, ridge." << endl;
     }
+
+    cout << endl << "Validation error with the final model: " << valError << endl;
 
     return 0;
 }
