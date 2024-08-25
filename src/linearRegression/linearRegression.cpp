@@ -3,16 +3,20 @@
 #include<cmath>
 #include "linearRegression.h"
 
-
 using namespace std;
 
 LinearRegression::LinearRegression(int samples, int features)
-    :numSamples(samples), numFeatures(features) {
-    theta = vector<double>(numFeatures, 0);
+    : numSamples(samples), numFeatures(features) {
+    // Initialize parameters with small random values centered around zero
+    theta.resize(numFeatures, 0.0);
+    for (int j = 0; j < numFeatures; j++) {
+        theta[j] = (static_cast<double>(rand()) / RAND_MAX) * 0.01;
     }
+}
+
 LinearRegression::LinearRegression(): LinearRegression(0, 0) {}
 
-vector<double> LinearRegression::getPredictions(vector<vector<double>> trainFeatures) {
+vector<double> LinearRegression::getPredictions(const vector<vector<double>> &trainFeatures) const {
     int batchSamples = trainFeatures.size();
     vector<double> predictions(batchSamples, 0.0);
     for (int i = 0; i < batchSamples; i++) {
@@ -23,8 +27,8 @@ vector<double> LinearRegression::getPredictions(vector<vector<double>> trainFeat
     return predictions;
 }
 
-double LinearRegression::meanSquaredError(vector<double> predictions, vector<double> target) {
-    double lossValue = 0;
+double LinearRegression::meanSquaredError(const vector<double> &predictions, const vector<double> &target) const {
+    double lossValue = 0.0;
     int batchSamples = predictions.size();
     for (int i = 0; i < batchSamples; i++)
         lossValue += pow(predictions[i] - target[i], 2);
@@ -33,37 +37,40 @@ double LinearRegression::meanSquaredError(vector<double> predictions, vector<dou
     return lossValue;
 }
 
-double LinearRegression::cost(vector<double> predictions, vector<double> target) {
+double LinearRegression::cost(const vector<double> &predictions, const vector<double> &target) const {
     return meanSquaredError(predictions, target);
 }
 
-void LinearRegression::gradientDescent(vector<vector<double>> trainFeatures, vector<double> target, double learningRate) {
+void LinearRegression::gradientDescent(const vector<vector<double>> &trainFeatures, 
+                                       const vector<double> &target, double learningRate) {
     int batchSamples = trainFeatures.size();
-    vector<double> dTheta(batchSamples, 0.0);
-    // First calculate predictions in order to use them for calculating gradients
+    vector<double> gradients(numFeatures, 0.0);
+    
+    // Calculate predictions to use them for calculating gradients
     vector<double> predictions = getPredictions(trainFeatures);
 
-    for (int i = 0; i < batchSamples; i++) {
-        for (int j = 0; j < numFeatures; j++) {
-            // Calculate gradients dTheta[j]
-            dTheta[j] += (predictions[i] - target[i]) * trainFeatures[i][j];
+    for (int j = 0; j < numFeatures; j++) {
+        for (int i = 0; i < batchSamples; i++) {
+            // Calculate gradients
+            gradients[j] += (predictions[i] - target[i]) * trainFeatures[i][j];
         }
+        gradients[j] = gradients[j] / double(batchSamples);
     }
+
     // Update coefficients
     for (int j = 0; j < numFeatures; j++) {
-        theta[j] = theta[j] - learningRate * dTheta[j] / batchSamples;
+        theta[j] = theta[j] - learningRate * gradients[j];
     }
-
 }
 
-vector<double> LinearRegression::predict(vector<vector<double>> trainFeatures) {
+vector<double> LinearRegression::predict(const vector<vector<double>> &trainFeatures) const {
     return getPredictions(trainFeatures);
 }
 
 void LinearRegression::createMiniBatches(vector<vector<vector<double>>> &miniBatches, 
                                          vector<vector<double>> &targetBatches,
-                                         vector<vector<double>> trainFeatures, 
-                                         vector<double> trainTarget, int batchSize) {
+                                         const vector<vector<double>> &trainFeatures, 
+                                         const vector<double> &trainTarget, int batchSize) {
     vector<vector<double>> miniBatch;
     vector<double> targetBatch;
     for (int i = 0; i < numSamples; i++) {
@@ -82,8 +89,9 @@ void LinearRegression::createMiniBatches(vector<vector<vector<double>>> &miniBat
     }
 }
 
-void LinearRegression::fit(vector<vector<double>> trainFeatures, vector<vector<double>> valFeatures, vector<double> trainTarget, 
-                           vector<double> valTarget, double learningRate=0.01, int epochs=10, int batchSize=0) {
+void LinearRegression::fit(const vector<vector<double>> &trainFeatures, const vector<vector<double>> &valFeatures, 
+                           const vector<double> &trainTarget, const vector<double> &valTarget, 
+                           double learningRate, int epochs, int batchSize) {
 
     vector<double> trainLoss(epochs, 0.0);
     vector<double> valLoss(epochs, 0.0);
@@ -93,17 +101,15 @@ void LinearRegression::fit(vector<vector<double>> trainFeatures, vector<vector<d
     if (batchSize != 0) {
         createMiniBatches(miniBatches, targetBatches, trainFeatures, trainTarget, batchSize);
         cout << "Created " << miniBatches.size() << " batches with sizes: ( ";
-        for (vector<double> t : targetBatches)
+        for (const vector<double> &t : targetBatches)
             cout << t.size() << " ";
         cout << " )" << endl;
-        trainFeatures.clear();
     }
+    
     for (int epoch = 0; epoch < epochs; epoch++) {
         if (batchSize == 0) {
             gradientDescent(trainFeatures, trainTarget, learningRate);
-        }
-        // Divide features into batches
-        else {
+        } else {
             for (int b = 0; b < miniBatches.size(); b++) {
                 gradientDescent(miniBatches[b], targetBatches[b], learningRate);
             }
