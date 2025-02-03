@@ -23,7 +23,7 @@ void plotPredictions(const vector<double>& target, const vector<double>& predict
 
 int main() {
     string filename = "../../data/datasets/Real_Estate.csv";
-    string regressionType = "linear";
+    string regressionType = "ridge";
     double valSize = 0.2;
     vector<vector<double>> features, trainFeatures, valFeatures;
     vector<double> target, trainTarget, valTarget;

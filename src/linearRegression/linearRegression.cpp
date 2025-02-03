@@ -28,12 +28,18 @@ vector<double> LinearRegression::getPredictions(const vector<vector<double>> &tr
 }
 
 double LinearRegression::meanSquaredError(const vector<double> &predictions, const vector<double> &target) const {
+    if (predictions.size() != target.size()) {
+        throw std::invalid_argument("Predictions and target sizes must match");
+    }
+    
     double lossValue = 0.0;
     int batchSamples = predictions.size();
-    for (int i = 0; i < batchSamples; i++)
-        lossValue += pow(predictions[i] - target[i], 2);
+    for (int i = 0; i < batchSamples; i++) {
+        double diff = predictions[i] - target[i];
+        lossValue += diff * diff;
+    }
     
-    lossValue = lossValue / (2 * batchSamples);
+    lossValue = lossValue / (2.0 * batchSamples);
     return lossValue;
 }
 
@@ -43,20 +49,25 @@ double LinearRegression::cost(const vector<double> &predictions, const vector<do
 
 void LinearRegression::gradientDescent(const vector<vector<double>> &trainFeatures, 
                                        const vector<double> &target, double learningRate) {
-    int batchSamples = trainFeatures.size();
-    vector<double> gradients(numFeatures, 0.0);
+    if (learningRate <= 0) {
+        throw std::invalid_argument("Learning rate must be positive");
+    }
     
+    int batchSamples = trainFeatures.size();
+    if (batchSamples == 0) {
+        return;
+    }
+
+    vector<double> gradients(numFeatures, 0.0);
     // Calculate predictions to use them for calculating gradients
     vector<double> predictions = getPredictions(trainFeatures);
 
     for (int j = 0; j < numFeatures; j++) {
         for (int i = 0; i < batchSamples; i++) {
-            // Calculate gradients
             gradients[j] += (predictions[i] - target[i]) * trainFeatures[i][j];
         }
         gradients[j] = gradients[j] / double(batchSamples);
     }
-
     // Update coefficients
     for (int j = 0; j < numFeatures; j++) {
         theta[j] = theta[j] - learningRate * gradients[j];
@@ -92,6 +103,23 @@ void LinearRegression::createMiniBatches(vector<vector<vector<double>>> &miniBat
 void LinearRegression::fit(const vector<vector<double>> &trainFeatures, const vector<vector<double>> &valFeatures, 
                            const vector<double> &trainTarget, const vector<double> &valTarget, 
                            double learningRate, int epochs, int batchSize) {
+
+    // Validate inputs
+    if (trainFeatures.empty() || trainTarget.empty()) {
+        throw std::invalid_argument("Training data cannot be empty");
+    }
+    if (trainFeatures.size() != trainTarget.size()) {
+        throw std::invalid_argument("Number of training samples must match target size");
+    }
+    if (!valFeatures.empty() && valFeatures.size() != valTarget.size()) {
+        throw std::invalid_argument("Number of validation samples must match target size");
+    }
+    if (epochs <= 0) {
+        throw std::invalid_argument("Number of epochs must be positive");
+    }
+    if (batchSize < 0 || (batchSize > 0 && batchSize > trainFeatures.size())) {
+        throw std::invalid_argument("Invalid batch size");
+    }
 
     vector<double> trainLoss(epochs, 0.0);
     vector<double> valLoss(epochs, 0.0);

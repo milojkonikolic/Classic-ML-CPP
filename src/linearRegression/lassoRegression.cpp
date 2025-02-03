@@ -32,8 +32,10 @@ void LassoRegression::gradientDescent(const vector<vector<double>> &trainFeature
             // Calculate gradients gradients[j]
             gradients[j] += (predictions[i] - target[i]) * trainFeatures[i][j];
         }
-        // Regularization term in gradient descent
-        gradients[j] += alpha * ((theta[j] > 0) ? 1 : ((theta[j] < 0) ? -1 : 0));
+        // Regularization term in gradient descent (exclude regularization of the bias term)
+        if (j > 0) {
+            gradients[j] += alpha * ((theta[j] > 0) ? 1 : ((theta[j] < 0) ? -1 : 0));
+        }
     }
     // Update coefficients
     for (int j = 0; j < numFeatures; j++) {

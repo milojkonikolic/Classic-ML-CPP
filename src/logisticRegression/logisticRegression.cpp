@@ -8,6 +8,10 @@ using namespace std;
 
 LogisticRegression::LogisticRegression(int samples, int features, int classes)
     : numSamples(samples), numFeatures(features), numClasses(classes) {
+    if (samples < 0 || features < 0 || classes < 2) {
+        throw std::invalid_argument("Invalid dimensions: samples and features must be non-negative, classes must be >= 2");
+    }
+
     // Initialize parameters with small random values centered around zero
     theta.resize(numClasses, vector<double>(numFeatures, 0.0));
     for (int k = 0; k < numClasses; k++) {
@@ -22,8 +26,10 @@ LogisticRegression::LogisticRegression() : LogisticRegression(0, 0, 0) {}
 double LogisticRegression::crossEntropy(const vector<vector<double>>& probabilities, const vector<int>& target) {
     int batchSamples = probabilities.size();
     double lossValue = 0.0;
+    const double epsilon = 1e-15;  // Small constant to prevent log(0)
+    
     for (int i = 0; i < batchSamples; i++) {
-        lossValue -= log(probabilities[i][target[i]]);
+        lossValue -= log(max(probabilities[i][target[i]], epsilon));
     }
     return lossValue / batchSamples;
 }
@@ -36,7 +42,7 @@ vector<vector<double>> LogisticRegression::softmax(const vector<vector<double>>&
     int batchSamples = features.size();
     vector<vector<double>> scores(batchSamples, vector<double>(numClasses, 0.0));
     vector<vector<double>> probabilities(batchSamples, vector<double>(numClasses, 0.0));
-
+    
     for (int i = 0; i < batchSamples; i++) {
         double sumExp = 0.0;
         for (int k = 0; k < numClasses; k++) {
@@ -125,6 +131,21 @@ void LogisticRegression::calcMetrics(const vector<int>& predictions, const vecto
 void LogisticRegression::fit(const vector<vector<double>>& trainFeatures, const vector<vector<double>>& valFeatures, 
                              const vector<int>& trainTarget, const vector<int>& valTarget, 
                              double learningRate, int epochs, int batchSize) {
+    
+    // Input validation
+    if (trainFeatures.empty() || trainTarget.empty()) {
+        throw std::invalid_argument("Training data cannot be empty");
+    }
+    if (trainFeatures.size() != trainTarget.size()) {
+        throw std::invalid_argument("Number of training samples must match target size");
+    }
+    if (learningRate <= 0) {
+        throw std::invalid_argument("Learning rate must be positive");
+    }
+    if (epochs <= 0) {
+        throw std::invalid_argument("Number of epochs must be positive");
+    }
+    
     vector<double> trainLoss(epochs, 0.0);
     vector<double> valLoss(epochs, 0.0);
     vector<double> accuracy(numClasses, 0.0), recall(numClasses, 0.0), precision(numClasses, 0.0), f1Score(numClasses, 0.0);
